@@ -1,0 +1,81 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Business {
+  id                    String    @id @default(cuid())
+  name                  String
+  webhookChatRecordUrl  String?
+  webhookSendMessageUrl String?
+  webhookUserReplyUrl   String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  users                 User[]
+  chats                 Chat[]
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String?
+  passwordHash String
+  businessId   String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business     Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model Chat {
+  id           String    @id @default(cuid())
+  businessId   String
+  chatId       String    // Phone number or unique identifier
+  contactName  String?
+  notes        String?   @default("")
+  status       String    @default("New") // New, In Progress, Waiting for Client, Closed
+  lastMessage  String?
+  lastMessageTime DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  business     Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  messages     Message[]
+  labels       Label[]
+
+  @@unique([businessId, chatId])
+  @@index([businessId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  chatId     String
+  direction  String   // "incoming" or "outgoing"
+  content    String
+  timestamp  DateTime
+  createdAt  DateTime @default(now())
+
+  chat       Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+}
+
+model Label {
+  id        String   @id @default(cuid())
+  chatId    String
+  name      String
+  color     String   @default("#00A884")
+  createdAt DateTime @default(now())
+
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+
+  @@index([chatId])
+}
